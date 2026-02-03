@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPC Diagnostic Terminal | Sir Fransisco</title>
+    <style>
+        :root {
+            --clinic-blue: #0a84ff;
+            --sterile-white: #f5f7fa;
+            --bio-hazard: #ff3b30;
+            --lab-green: #34c759;
+            --deep-slate: #1c1c1e;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1a2a3a 0%, #000 100%);
+            color: var(--sterile-white);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .lab-terminal {
+            width: 95%;
+            max-width: 750px;
+            background: rgba(28, 28, 30, 0.98);
+            border: 1px solid #3a3a3c;
+            border-top: 6px solid var(--clinic-blue);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.9);
+            margin: 20px;
+            position: relative;
+        }
+
+        .header { border-bottom: 1px solid #3a3a3c; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;}
+        h2 { font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin: 0; font-size: 1.2rem;}
+
+        .input-field { width: 100%; background: #000; border: 1px solid #3a3a3c; padding: 12px; color: var(--lab-green); font-family: monospace; margin-bottom: 15px; outline: none; border-radius: 4px;}
+        
+        .action-btn { width: 100%; padding: 18px; background: var(--clinic-blue); color: white; border: none; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; border-radius: 4px; transition: 0.3s; }
+        .action-btn:hover { background: #0071db; transform: translateY(-2px); }
+
+        .option-card { background: rgba(255,255,255,0.03); border: 1px solid #3a3a3c; padding: 16px; margin: 10px 0; cursor: pointer; transition: 0.2s; font-size: 14px; border-radius: 6px; }
+        .option-card:hover { border-color: var(--clinic-blue); background: rgba(10, 132, 255, 0.05); }
+        .option-card.active { border-color: var(--clinic-blue); border-left: 10px solid var(--clinic-blue); background: rgba(10, 132, 255, 0.1); }
+
+        /* Review Section */
+        #reviewSection { margin-top: 30px; text-align: left; max-height: 350px; overflow-y: auto; padding-right: 15px; border: 1px solid #3a3a3c; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        #reviewSection::-webkit-scrollbar { width: 6px; }
+        #reviewSection::-webkit-scrollbar-thumb { background: var(--clinic-blue); border-radius: 10px; }
+
+        .review-item { padding: 20px; border-bottom: 1px solid #2c2c2e; }
+        .review-q { font-weight: bold; color: #fff; margin-bottom: 8px; font-size: 14px; }
+        .correct { color: var(--lab-green); font-weight: bold; }
+        .incorrect { color: var(--bio-hazard); text-decoration: line-through; margin-right: 10px; }
+
+        /* Signature Seal */
+        .signature-box {
+            margin-top: 40px;
+            padding: 20px;
+            border: 1px dashed var(--clinic-blue);
+            display: inline-block;
+            text-align: center;
+            background: rgba(10, 132, 255, 0.05);
+        }
+        .sig-font { font-family: 'Brush Script MT', cursive; font-size: 28px; color: var(--sterile-white); }
+        .seal-text { font-size: 10px; color: var(--clinic-blue); letter-spacing: 3px; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="startScreen" class="lab-terminal">
+    <div class="header"><h2>Diagnostic Initializer</h2><span>[IPC-V4.0]</span></div>
+    <p style="color: #8e8e93; font-size: 14px; margin-bottom: 20px;">AUTHENTICATION REQUIRED: Clinical Laboratory Protocol</p>
+    <input id="name" class="input-field" placeholder="INPUT FULL NAME...">
+    <input id="reg" class="input-field" placeholder="INPUT REGISTRATION ID...">
+    <button class="action-btn" onclick="startApp()">INITIATE DIAGNOSTIC</button>
+    <div style="text-align: center; margin-top: 25px; font-size: 10px; opacity: 0.5;">PREPARED BY SIR FRANSISCO</div>
+</div>
+
+<div id="quizScreen" class="lab-terminal" style="display:none;">
+    <div class="header"><h2 id="qCount">Specimen Analysis</h2><span id="timer" style="color:var(--bio-hazard); font-weight: bold;">720s</span></div>
+    <div style="height: 2px; background: #3a3a3c; margin-bottom: 20px;"><div id="progressFill" style="height:100%; width:0%; background:var(--clinic-blue); transition: 0.5s;"></div></div>
+    <h3 id="questionText" style="font-weight: 400; font-size: 18px; line-height: 1.6;"></h3>
+    <div id="optionsGrid"></div>
+    <button class="action-btn" id="submitBtn" onclick="processAnswer()">VERIFY SAMPLE</button>
+    <button class="action-btn" id="nextBtn" onclick="nextQuestion()" style="display:none; background:#fff; color:#000;">CONTINUE →</button>
+</div>
+
+<div id="resultScreen" class="lab-terminal" style="display:none; text-align:center;">
+    <div class="header"><h2>Final Laboratory Report</h2></div>
+    <div id="studentDetail" style="font-size: 14px; margin-bottom: 10px; color: var(--clinic-blue);"></div>
+    <h1 id="scoreDisplay" style="font-size: 60px; margin: 10px 0;"></h1>
+    <div id="statusBadge" style="font-weight: bold; font-size: 18px; margin-bottom: 30px;"></div>
+    
+    <div id="reviewSection">
+        <div id="reviewList"></div>
+    </div>
+
+    <div class="signature-box">
+        <div class="sig-font">Sir Fransisco</div>
+        <div class="seal-text">OFFICIALLY CERTIFIED SIGNATURE</div>
+    </div>
+
+    <button class="action-btn" onclick="location.reload()" style="margin-top:30px; background:transparent; border:1px solid #3a3a3c">NEW DIAGNOSTIC RUN</button>
+</div>
+
+<script>
+const quiz = [
+    {q:"Why is the processing of instruments in healthcare settings considered critical before use?", options:["To reduce cost","To prevent nosocomial infections","To comply with plumbing","To ensure shine","To prevent degradation"], answer:1},
+    {q:"What renders an item safe for handling by physical/chemical means?", options:["Sterilization","Disinfestation","Decontamination","Fluidics","Incineration"], answer:2},
+    {q:"Decontamination level depends on:", options:["Time of day","Manufacturer","Body site used","Price","PPE availability"], answer:2},
+    {q:"Performed before HLD/Sterilization to remove organic material?", options:["Incineration","Thorough cleaning","Gaseous sterilization","Terminal disinfection","Aeration"], answer:1},
+    {q:"Method using 'fluidics' for internal channels?", options:["Manual cleaning","Ultrasonic cleaning","Washer-sterilizers","Hot air oven","Plasma sterilization"], answer:0},
+    {q:"How does disinfection differ from disinfestation?", options:["Heat vs Chemicals","Elimination of insects/vermin","Kills all spores","No difference","Only used for surgical steel"], answer:1},
+    {q:"'Current disinfection' refers to:", options:["Annual cleaning","Post-death disinfection","Routine during disease course","Electric killing","99% alcohol"], answer:2},
+    {q:"Characteristic of an ideal disinfectant:", options:["Highly toxic","Acidic only","Stable upon storage","High cost","Strong odor"], answer:2},
+    {q:"Mechanism of phenolic compounds:", options:["DNA oxidation","Protein denaturation","Plasma state","Freezing","Lipid inhibition"], answer:1},
+    {q:"Which halogen is routinely used as a disinfectant?", options:["Helium","Chlorine","Carbon","Nitrogen","Neon"], answer:1},
+    {q:"Recommended after using chlorine solutions?", options:["Sterilization","Dry heat","Abundant rinsing","Paraffin","Bunsen flame"], answer:2},
+    {q:"Why not keep chlorine uncovered >12 hours?", options:["Acidity","Turns solid","Active chlorine decline","Vermin","Flammable"], answer:2},
+    {q:"Most effective alcohol concentration:", options:["100%","99%","70%","50%","25%"], answer:2},
+    {q:"Disinfectant for tissue preservation (8-10%):", options:["Hydrogen peroxide","Glutaraldehyde","Formalin","Peracetic acid","Permanganate"], answer:2},
+    {q:"Ratio for 0.5% chlorine from 3.5%:", options:["1 part water","3 parts water","6 parts water","10 parts water","14 parts water"], answer:2},
+    {q:"HLD eliminates everything except:", options:["Vegetative bacteria","Fungi","Some endospores","Viruses","Protozoa"], answer:2},
+    {q:"Autoclave standard:", options:["100C/5psi/60m","121C/15psi/15-20m","160C/0psi/2h","180C/30psi/5m","37C/10psi/75m"], answer:1},
+    {q:"Sterilization for heat-sensitive plastics:", options:["Hot air","Flaming","Ethylene Oxide","Autoclave","Boiling"], answer:2},
+    {q:"How does Dry Heat sterilization act?", options:["Free radicals","Oxidative damage","Radio frequency","Glutaraldehyde","Steam"], answer:1},
+    {q:"True statement regarding Peracetic Acid:", options:["Slow-acting","Effective in organic matter","Stable at 1%","Cannot kill spores","Only for hand wash"], answer:1}
+];
+
+let index=0, score=0, selected=null, timer, timeLeft=720;
+let studentName, studentReg;
+let studentAnswers = [];
+
+function startApp() {
+    studentName = document.getElementById("name").value.trim().toUpperCase();
+    studentReg = document.getElementById("reg").value.trim().toUpperCase();
+    if(!studentName || !studentReg) return alert("ACCESS DENIED: Credentials Required");
+    document.getElementById("startScreen").style.display = "none";
+    document.getElementById("quizScreen").style.display = "block";
+    startTimer();
+    loadQuestion();
+}
+
+function startTimer() {
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").textContent = timeLeft + "s";
+        if(timeLeft <= 0) finishQuiz();
+    }, 1000);
+}
+
+function loadQuestion() {
+    selected = null;
+    document.getElementById("submitBtn").style.display = "block";
+    document.getElementById("nextBtn").style.display = "none";
+    const q = quiz[index];
+    document.getElementById("qCount").textContent = `ANALYSIS SPECIMEN ${index+1}/${quiz.length}`;
+    document.getElementById("questionText").textContent = q.q;
+    const grid = document.getElementById("optionsGrid");
+    grid.innerHTML = "";
+    q.options.forEach((opt, i) => {
+        const d = document.createElement("div");
+        d.className = "option-card";
+        d.innerHTML = `<span style="color:var(--clinic-blue); font-weight:bold; margin-right:10px;">${String.fromCharCode(65+i)}.</span> ${opt}`;
+        d.onclick = () => {
+            document.querySelectorAll(".option-card").forEach(o => o.classList.remove("active"));
+            d.classList.add("active");
+            selected = i;
+        };
+        grid.appendChild(d);
+    });
+    document.getElementById("progressFill").style.width = ((index / quiz.length) * 100) + "%";
+}
+
+function processAnswer() {
+    if(selected === null) return;
+    const isCorrect = selected === quiz[index].answer;
+    if(isCorrect) score++;
+    
+    studentAnswers.push({
+        q: quiz[index].q,
+        correct: quiz[index].options[quiz[index].answer],
+        student: quiz[index].options[selected],
+        isRight: isCorrect
+    });
+
+    document.getElementById("submitBtn").style.display = "none";
+    document.getElementById("nextBtn").style.display = "block";
+}
+
+function nextQuestion() {
+    index++;
+    if(index < quiz.length) loadQuestion();
+    else finishQuiz();
+}
+
+function finishQuiz() {
+    clearInterval(timer);
+    document.getElementById("quizScreen").style.display = "none";
+    document.getElementById("resultScreen").style.display = "block";
+    
+    const pct = Math.round((score/quiz.length)*100);
+    document.getElementById("scoreDisplay").textContent = pct + "%";
+    document.getElementById("studentDetail").textContent = `ID: ${studentReg} | NAME: ${studentName}`;
+    
+    const badge = document.getElementById("statusBadge");
+    badge.textContent = pct >= 50 ? "RESULT: COMPETENT / PASS" : "RESULT: NON-COMPETENT / FAIL";
+    badge.style.color = pct >= 50 ? "var(--lab-green)" : "var(--bio-hazard)";
+
+    const list = document.getElementById("reviewList");
+    list.innerHTML = "<div style='padding:15px; background:var(--clinic-blue); color:#000; font-weight:bold; font-size:12px;'>DETAILED SPECIMEN REPORT:</div>";
+    studentAnswers.forEach((ans, i) => {
+        const item = document.createElement("div");
+        item.className = "review-item";
+        item.innerHTML = `
+            <div class="review-q">${i+1}. ${ans.q}</div>
+            <div>
+                ${ans.isRight ? 
+                    `<span class="correct">✓ VALIDATED: ${ans.correct}</span>` : 
+                    `<span class="incorrect">✗ ERROR: ${ans.student}</span> <br> <span class="correct">CORRECT DATA: ${ans.correct}</span>`
+                }
+            </div>
+        `;
+        list.appendChild(item);
+    });
+
+    // GOOGLE SHEETS UPLOAD (Paste your URL here)
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyR7A_u8zRWCG4GzhntPb123kqThgIjvBbbTEWtZKNRLN28wA2RZhUDDA2-ULUVo0DI/exec';
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({name: studentName, reg: studentReg, score: score, percent: pct})
+    });
+}
+</script>
+</body>
+</html>
